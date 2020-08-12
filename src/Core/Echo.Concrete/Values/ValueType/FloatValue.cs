@@ -10,9 +10,22 @@ namespace Echo.Concrete.Values.ValueType
     public abstract class FloatValue : IValueTypeValue
     {
         /// <inheritdoc />
-        public abstract bool IsKnown
+        public virtual bool IsKnown
         {
-            get;
+            get
+            {
+                Span<byte> mask = stackalloc byte[Size];
+                GetMask(mask);
+                
+                // Verify mask is all 1s.
+                for (int i = 0; i < Size; i++)
+                {
+                    if (mask[i] != 0xFF)
+                        return false;
+                }
+                
+                return true;
+            }
         }
 
         /// <inheritdoc />
@@ -25,16 +38,45 @@ namespace Echo.Concrete.Values.ValueType
         public bool IsValueType => true;
 
         /// <inheritdoc />
-        public abstract Trilean IsZero
+        public virtual Trilean IsZero
         {
-            get;
+            get
+            {
+                Span<byte> bits = stackalloc byte[Size];
+                GetBits(bits);
+
+                if (IsKnown)
+                {
+                    for (var i = 0; i < Size; i++)
+                    {
+                        if (bits[i] != 0)
+                            return Trilean.False;
+                    }
+
+                    return Trilean.True;
+                }
+
+
+                Span<byte> mask = stackalloc byte[Size];
+                GetMask(mask);
+                
+                var bitField = new BitField(bits);
+                var maskField = new BitField(mask);
+                
+                bitField.And(maskField);
+                
+                for (int i = 0; i < bits.Length * 8; i++)
+                {
+                    if (bitField[i])
+                        return Trilean.False;
+                }
+
+                return Trilean.Unknown;
+            }
         }
 
         /// <inheritdoc />
-        public abstract Trilean IsNonZero
-        {
-            get;
-        }
+        public virtual Trilean IsNonZero => !IsZero;
 
         /// <inheritdoc />
         public Trilean IsPositive => !Sign;
@@ -45,31 +87,81 @@ namespace Echo.Concrete.Values.ValueType
         /// <summary>
         /// Gets a value indicating the floating point number is a result of an invalid operation.
         /// </summary>
-        public abstract Trilean IsNaN
+        public virtual Trilean IsNaN
         {
-            get;
+            get
+            {
+                Span<byte> bits = stackalloc byte[Size];
+                Span<byte> mask = stackalloc byte[Size];
+                GetBits(bits);
+                GetMask(mask);
+
+                var bitField = new BitField(bits);
+                var maskField = new BitField(mask);
+
+                // Verify at least one bit in significand is 1.
+                Trilean atLeastOneSet = false;
+                for (int i = 0; i < SignificandSize && !atLeastOneSet; i++)
+                {
+                    if (!maskField[i + SignificantIndex])
+                        atLeastOneSet |= Trilean.Unknown;
+                    else if (bitField[i + SignificantIndex])
+                        atLeastOneSet = true;
+                }
+
+                // Verify exponent is all 1s.
+                for (int i = 0; i < ExponentSize; i++)
+                {
+                    if (!bitField[i + ExponentIndex])
+                        return Trilean.False;
+                }
+
+                return atLeastOneSet;
+            }
         }
 
         /// <summary>
         /// Gets a value indicating whether the floating point number is equal to either positive or negative infinity. 
         /// </summary>
-        public Trilean IsInfinity => IsPositiveInfinity | IsNegativeInfinity;
+        public Trilean IsInfinity
+        {
+            get
+            {
+                if (!IsKnown)
+                    return Trilean.Unknown;
+                
+                Span<byte> bits = stackalloc byte[Size];
+                GetBits(bits);
+
+                var bitField = new BitField(bits);
+
+                // Verify significand is all 0s.
+                for (int i = 0; i < SignificandSize; i++)
+                {
+                    if (bitField[i + SignificantIndex])
+                        return Trilean.False;
+                }
+                
+                // Verify exponent is all 1s.
+                for (int i = 0; i < ExponentSize; i++)
+                {
+                    if (!bitField[i + ExponentIndex])
+                        return Trilean.False;
+                }
+                
+                return Trilean.True;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether the floating point number is equal to positive infinity. 
         /// </summary>
-        public abstract Trilean IsPositiveInfinity
-        {
-            get;
-        }
+        public virtual Trilean IsPositiveInfinity => !Sign & IsInfinity;
 
         /// <summary>
         /// Gets a value indicating whether the floating point number is equal to negative infinity. 
         /// </summary>
-        public abstract Trilean IsNegativeInfinity
-        {
-            get;
-        }
+        public virtual Trilean IsNegativeInfinity => Sign & IsInfinity;
 
         /// <summary>
         /// Gets or sets the sign bit of the number.
@@ -95,6 +187,12 @@ namespace Echo.Concrete.Values.ValueType
         {
             get;
         }
+        
+        private int ExponentIndex => SignificantIndex + SignificandSize;
+
+        private int SignificantIndex => 0;
+
+        private int SignIndex => ExponentIndex + ExponentSize;
 
         /// <summary>
         /// Gets a value indicating the exponent bias that is used in the representation of the bias.

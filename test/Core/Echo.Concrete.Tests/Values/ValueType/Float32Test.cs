@@ -7,6 +7,38 @@ namespace Echo.Concrete.Tests.Values.ValueType
     public class Float32Test
     {
         [Fact]
+        public void IsZeroTest()
+        {
+            var value = new Float32Value(0);
+            Assert.Equal(true, value.IsZero);
+        }
+        
+        [Fact]
+        public void IsPositiveInfinity()
+        {
+            var value = new Float32Value(float.PositiveInfinity);
+            Assert.Equal(true, value.IsInfinity);
+            Assert.Equal(true, value.IsPositiveInfinity);
+            Assert.Equal(false, value.IsNegativeInfinity);
+        }
+        
+        [Fact]
+        public void IsNegativeInfinity()
+        {
+            var value = new Float32Value(float.NegativeInfinity);
+            Assert.Equal(true, value.IsInfinity);
+            Assert.Equal(false, value.IsPositiveInfinity);
+            Assert.Equal(true, value.IsNegativeInfinity);
+        }
+        
+        [Fact]
+        public void IsNaN()
+        {
+            var value = new Float32Value(float.NaN);
+            Assert.Equal(true, value.IsNaN);
+        }
+        
+        [Fact]
         public void PersistentBits()
         {
             const float testValue = 0.123f;

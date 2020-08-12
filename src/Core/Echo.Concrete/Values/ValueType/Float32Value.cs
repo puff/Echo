@@ -9,7 +9,7 @@ namespace Echo.Concrete.Values.ValueType
     /// <summary>
     /// Represents a fully known concrete 32 bit floating point numerical value.
     /// </summary>
-    public class Float32Value : IValueTypeValue
+    public class Float32Value : FloatValue
     {
         /// <summary>
         /// Wraps a 32 bit floating point number into an instance of <see cref="Float32Value"/>.
@@ -40,28 +40,23 @@ namespace Echo.Concrete.Values.ValueType
         }
 
         /// <inheritdoc />
-        public bool IsKnown => true;
+        public override int Size => sizeof(float);
 
         /// <inheritdoc />
-        public int Size => sizeof(float);
+        public override Trilean Sign
+        {
+            get => F32 < 0;
+            set => throw new NotImplementedException();
+        }
 
         /// <inheritdoc />
-        public bool IsValueType => true;
+        public override int ExponentSize => 8;
 
         /// <inheritdoc />
-        public Trilean IsZero => F32 == 0;
+        public override int SignificandSize => 23;
 
         /// <inheritdoc />
-        public Trilean IsNonZero => F32 != 0;
-
-        /// <inheritdoc />
-        public Trilean IsPositive => F32 > 0;
-
-        /// <inheritdoc />
-        public Trilean IsNegative => F32 < 0;
-
-        /// <inheritdoc />
-        public unsafe void GetBits(Span<byte> buffer)
+        public override unsafe void GetBits(Span<byte> buffer)
         {
             // HACK: .NET standard 2.0 does not provide a method to write floating point numbers to a span.
             
@@ -71,14 +66,14 @@ namespace Echo.Concrete.Values.ValueType
         }
 
         /// <inheritdoc />
-        public void GetMask(Span<byte> buffer)
+        public override void GetMask(Span<byte> buffer)
         {
             // TODO: support unknown bits in float.
-            buffer.Fill(0);
+            buffer.Fill(0xFF);
         }
 
         /// <inheritdoc />
-        public unsafe void SetBits(Span<byte> bits, Span<byte> mask)
+        public override unsafe void SetBits(Span<byte> bits, Span<byte> mask)
         {
             // HACK: .NET standard 2.0 does not provide a method to read floating point numbers from a span.
             // TODO: support unknown bits in float.
@@ -88,7 +83,7 @@ namespace Echo.Concrete.Values.ValueType
         }
 
         /// <inheritdoc />
-        public IValue Copy() => new Float32Value(F32);
+        public override IValue Copy() => new Float32Value(F32);
 
         /// <inheritdoc />
         public override string ToString() => F32.ToString(CultureInfo.InvariantCulture);
