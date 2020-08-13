@@ -27,10 +27,15 @@ namespace Echo.Concrete.Values.ValueType
         public abstract void GetMask(Span<byte> buffer);
 
         /// <summary>
-        /// Replaces the raw contents of the integer with the provided bits and known mask.
+        /// Replaces the raw contents of the value with the provided bits and known mask.
         /// </summary>
         /// <param name="bits">The new bit values.</param>
         /// <param name="mask">The new bit mask indicating the known bits.</param>
         public abstract void SetBits(Span<byte> bits, Span<byte> mask);
+        
+        /// <summary>
+        /// Marks all bits in the value value as unknown.
+        /// </summary>
+        public abstract void MarkFullyUnknown();
     }
 }

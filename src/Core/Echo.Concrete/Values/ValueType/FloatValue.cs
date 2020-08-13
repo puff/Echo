@@ -197,7 +197,7 @@ namespace Echo.Concrete.Values.ValueType
         /// <summary>
         /// Gets a value indicating the exponent bias that is used in the representation of the bias.
         /// </summary>
-        public int ExponentBias => (1 << ExponentSize) - 1;
+        public int ExponentBias => (1 << ExponentSize - 1) - 1;
 
         /// <inheritdoc />
         public abstract void GetBits(Span<byte> buffer);
@@ -209,7 +209,22 @@ namespace Echo.Concrete.Values.ValueType
         public abstract void SetBits(Span<byte> bits, Span<byte> mask);
 
         /// <inheritdoc />
+        public abstract void MarkFullyUnknown();
+
+        /// <inheritdoc />
         public abstract IValue Copy();
+
+        /// <summary>
+        /// Gets the exponent integer.
+        /// </summary>
+        /// <returns>The exponent.</returns>
+        protected abstract IntegerValue GetExponent();
+
+        /// <summary>
+        /// Gets the significand, including the implicit bit.
+        /// </summary>
+        /// <returns>The significand.</returns>
+        protected abstract IntegerValue GetSignificand();
 
         /// <inheritdoc />
         public override string ToString()
@@ -235,22 +250,18 @@ namespace Echo.Concrete.Values.ValueType
             builder.Append(IsZero ? "0." : "1.");
 
             for (int i = SignificantIndex + SignificandSize - 1; i >= SignificantIndex; i--)
-                WriteBit(builder, bitField[i], maskField[i]);
-            
-            builder.Append("₂ * 2^");
-            for (int i = ExponentIndex + ExponentSize - 1; i >= ExponentIndex; i--)
-                WriteBit(builder, bitField[i], maskField[i]);
-
-            static void WriteBit(StringBuilder builder, bool value, bool mask)
             {
-                if (!mask)
+                if (!maskField[i])
                     builder.Append('?');
-                else if (value)
+                else if (bitField[i])
                     builder.Append('1');
                 else
                     builder.Append('0');
             }
 
+            builder.Append("₂ × 2^");
+            var exponent = GetExponent();
+            builder.Append(exponent);
             builder.Append('₂');
 
             return builder.ToString();

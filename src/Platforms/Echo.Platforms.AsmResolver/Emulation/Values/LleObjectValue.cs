@@ -87,5 +87,13 @@ namespace Echo.Platforms.AsmResolver.Emulation.Values
 
         /// <inheritdoc />
         public void SetBits(Span<byte> bits, Span<byte> mask) => Contents.WriteBytes(0, bits, mask);
+
+        /// <inheritdoc />
+        public void MarkFullyUnknown()
+        {
+            Span<byte> empty = stackalloc byte[Contents.Length];
+            empty.Fill(0);
+            Contents.WriteBytes(0, empty, empty);
+        }
     }
 }

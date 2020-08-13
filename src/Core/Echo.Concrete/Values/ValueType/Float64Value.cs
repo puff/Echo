@@ -83,7 +83,26 @@ namespace Echo.Concrete.Values.ValueType
         public override int SignificandSize => 52;
 
         /// <inheritdoc />
+        public override void MarkFullyUnknown()
+        {
+            F64 = 0;
+            Mask = 0;
+        }
+
+        /// <inheritdoc />
         public override IValue Copy() => new Float64Value(F64);
+
+        /// <inheritdoc />
+        protected override IntegerValue GetExponent()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        protected override IntegerValue GetSignificand()
+        {
+            throw new NotImplementedException();
+        }
 
         /// <inheritdoc />
         public override unsafe void GetBits(Span<byte> buffer)

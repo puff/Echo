@@ -26,6 +26,10 @@ namespace Echo.Concrete.Values.ValueType
         /// </summary>
         public const uint FullyKnownMask = 0xFFFFFFFF;
 
+        private const int SignificandMask = 0b0_00000000_11111111111111111111111;
+        private const int ExponentMask = 0b0_11111111_00000000000000000000000;
+        private static readonly Integer8Value ExponentBiasValue = new Integer8Value(127);
+
         /// <summary>
         /// Creates a new fully known concrete 32 bit floating point numerical value.
         /// </summary>
@@ -104,6 +108,37 @@ namespace Echo.Concrete.Values.ValueType
             
             uint rawBits = BinaryPrimitives.ReadUInt32LittleEndian(bits);
             F32 = *(float*) &rawBits;
+        }
+
+        /// <inheritdoc />
+        public override void MarkFullyUnknown()
+        {
+            F32 = 0;
+            Mask = 0;
+        }
+
+        /// <inheritdoc />
+        protected override unsafe IntegerValue GetExponent()
+        {
+            float value = F32;
+            uint rawBits = (*(uint*) &value & ExponentMask) >> SignificandSize;
+            uint maskBits = (Mask & ExponentMask) >> SignificandSize;
+            
+            var result = new Integer8Value((byte) rawBits, (byte) maskBits);
+            result.Subtract(ExponentBiasValue);
+            return result;
+        }
+
+        /// <inheritdoc />
+        protected override unsafe IntegerValue GetSignificand()
+        {
+            float value = F32;
+            uint rawBits = *(uint*) &value & SignificandMask;
+
+            if (IsZero.Value != TrileanValue.True)
+                rawBits |= 1u << SignificandSize;
+
+            return new Integer32Value(rawBits, Mask);
         }
 
         /// <inheritdoc />

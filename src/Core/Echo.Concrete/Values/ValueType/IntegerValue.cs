@@ -768,9 +768,7 @@ namespace Echo.Concrete.Values.ValueType
             return result;
         }
 
-        /// <summary>
-        /// Marks all bits in the integer value as unknown.
-        /// </summary>
+        /// <inheritdoc />
         public abstract void MarkFullyUnknown();
 
         private void AssertSameBitSize(IntegerValue other)
