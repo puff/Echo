@@ -229,6 +229,25 @@ namespace Echo.Concrete.Values.ValueType
         /// <inheritdoc />
         public override string ToString()
         {
+            if (IsNaN)
+                return "NaN";
+            
+            var builder = new StringBuilder();
+            
+            builder.Append(Sign.Value switch
+            {
+                TrileanValue.False => '+',
+                TrileanValue.True => '-',
+                TrileanValue.Unknown => '±',
+                _ => throw new ArgumentOutOfRangeException()
+            });
+            
+            if (IsInfinity)
+            {
+                builder.Append('∞');
+                return builder.ToString();
+            }
+
             Span<byte> bits = stackalloc byte[Size];
             Span<byte> mask = stackalloc byte[Size];
             GetBits(bits);
@@ -236,17 +255,7 @@ namespace Echo.Concrete.Values.ValueType
 
             var bitField = new BitField(bits);
             var maskField = new BitField(mask);
-
-            var builder = new StringBuilder();
-
-            builder.Append(Sign.Value switch
-            {
-                TrileanValue.False => "+",
-                TrileanValue.True => "-",
-                TrileanValue.Unknown => "(-1)^? * ",
-                _ => throw new ArgumentOutOfRangeException()
-            });
-
+            
             builder.Append(IsZero ? "0." : "1.");
 
             for (int i = SignificantIndex + SignificandSize - 1; i >= SignificantIndex; i--)

@@ -1,6 +1,5 @@
 using System;
 using System.Buffers.Binary;
-using System.Globalization;
 using Echo.Core;
 using Echo.Core.Values;
 
@@ -26,8 +25,9 @@ namespace Echo.Concrete.Values.ValueType
         /// </summary>
         public const uint FullyKnownMask = 0xFFFFFFFF;
 
-        private const int SignificandMask = 0b0_00000000_11111111111111111111111;
-        private const int ExponentMask = 0b0_11111111_00000000000000000000000;
+        private const uint ExponentMask = 0b0_11111111_00000000000000000000000;
+        private const uint SignificandMask = 0b0_00000000_11111111111111111111111;
+        private const uint DefaultSignificandMask = 0b1_11111111_00000000000000000000000;
         private static readonly Integer8Value ExponentBiasValue = new Integer8Value(127);
 
         /// <summary>
@@ -120,6 +120,9 @@ namespace Echo.Concrete.Values.ValueType
         /// <inheritdoc />
         protected override unsafe IntegerValue GetExponent()
         {
+            if (IsZero)
+                return new Integer8Value(0);
+            
             float value = F32;
             uint rawBits = (*(uint*) &value & ExponentMask) >> SignificandSize;
             uint maskBits = (Mask & ExponentMask) >> SignificandSize;
@@ -132,13 +135,17 @@ namespace Echo.Concrete.Values.ValueType
         /// <inheritdoc />
         protected override unsafe IntegerValue GetSignificand()
         {
+            if (IsZero)
+                return new Integer8Value(0);
+            
             float value = F32;
             uint rawBits = *(uint*) &value & SignificandMask;
+            uint maskBits = (Mask & SignificandMask) | DefaultSignificandMask;
 
             if (IsZero.Value != TrileanValue.True)
                 rawBits |= 1u << SignificandSize;
 
-            return new Integer32Value(rawBits, Mask);
+            return new Integer32Value(rawBits, maskBits);
         }
 
         /// <inheritdoc />

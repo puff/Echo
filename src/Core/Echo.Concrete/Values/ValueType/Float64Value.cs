@@ -26,6 +26,11 @@ namespace Echo.Concrete.Values.ValueType
         /// </summary>
         public const ulong FullyKnownMask = 0xFFFFFFFF_FFFFFFFF;
 
+        private const ulong ExponentMask = 0b0_11111111_0000000000000000000000000000000000000000000000000000;
+        private const ulong SignificandMask = 0b0_00000000000_1111111111111111111111111111111111111111111111111111;
+        private const ulong DefaultSignificandMask = 0b1_11111111111_0000000000000000000000000000000000000000000000000000;
+        private static readonly Integer16Value ExponentBiasValue = new Integer16Value(1023);
+
         /// <summary>
         /// Creates a new fully known concrete 64 bit floating point numerical value.
         /// </summary>
@@ -93,15 +98,34 @@ namespace Echo.Concrete.Values.ValueType
         public override IValue Copy() => new Float64Value(F64);
 
         /// <inheritdoc />
-        protected override IntegerValue GetExponent()
+        protected override unsafe IntegerValue GetExponent()
         {
-            throw new NotImplementedException();
+            if (IsZero)
+                return new Integer16Value(0);
+            
+            double value = F64;
+            ulong rawBits = (*(ulong*) &value & ExponentMask) >> SignificandSize;
+            ulong maskBits = (Mask & ExponentMask) >> SignificandSize;
+            
+            var result = new Integer16Value((ushort) rawBits, (ushort) maskBits);
+            result.Subtract(ExponentBiasValue);
+            return result;
         }
 
         /// <inheritdoc />
-        protected override IntegerValue GetSignificand()
+        protected override unsafe IntegerValue GetSignificand()
         {
-            throw new NotImplementedException();
+            if (IsZero)
+                return new Integer64Value(0);
+            
+            double value = F64;
+            ulong rawBits = *(uint*) &value & SignificandMask;
+            ulong maskBits = (Mask & SignificandMask) | DefaultSignificandMask;
+
+            if (IsZero.Value != TrileanValue.True)
+                rawBits |= 1u << SignificandSize;
+
+            return new Integer64Value(rawBits, maskBits);
         }
 
         /// <inheritdoc />
