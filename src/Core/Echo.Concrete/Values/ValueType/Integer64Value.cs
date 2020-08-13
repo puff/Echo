@@ -192,6 +192,9 @@ namespace Echo.Concrete.Values.ValueType
         public override IValue Copy() => new Integer64Value(U64, Mask);
 
         /// <inheritdoc />
+        public override int ToInt32Value() => (int) (I64 & 0xFFFFFFFF);
+
+        /// <inheritdoc />
         public override void Not()
         {
             U64 = ~U64;

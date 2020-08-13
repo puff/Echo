@@ -147,6 +147,9 @@ namespace Echo.Concrete.Values.ValueType
         } 
 
         /// <inheritdoc />
+        public abstract void MarkFullyUnknown();
+
+        /// <inheritdoc />
         public override string ToString()
         {
             var size = Size * 8;
@@ -160,6 +163,21 @@ namespace Echo.Concrete.Values.ValueType
 
         /// <inheritdoc />
         public abstract IValue Copy();
+
+        /// <summary>
+        /// Reads the first 32 bits of the value and interprets it as a 32 bit signed integer. 
+        /// </summary>
+        /// <returns>The signed integer.</returns>
+        /// <remarks>
+        /// <para>
+        /// This method ignores the unknown bit mask.
+        /// </para>
+        /// <para>
+        /// If the integer contains less than 32 bits, the remaining bits are zeroed out. If the integer contains more
+        /// than 32 bits, the integer is truncated to 32 bits.
+        /// </para> 
+        /// </remarks>
+        public abstract int ToInt32Value();
 
         /// <summary>
         /// Performs a bitwise not operation on the (partially) known integer value.
@@ -767,9 +785,6 @@ namespace Echo.Concrete.Values.ValueType
             
             return result;
         }
-
-        /// <inheritdoc />
-        public abstract void MarkFullyUnknown();
 
         private void AssertSameBitSize(IntegerValue other)
         {

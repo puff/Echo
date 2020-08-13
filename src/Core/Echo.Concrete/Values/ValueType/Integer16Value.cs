@@ -192,6 +192,9 @@ namespace Echo.Concrete.Values.ValueType
         public override IValue Copy() => new Integer16Value(U16, Mask);
 
         /// <inheritdoc />
+        public override int ToInt32Value() => I16;
+
+        /// <inheritdoc />
         public override void Not()
         {
             U16 = unchecked((ushort) ~U16);

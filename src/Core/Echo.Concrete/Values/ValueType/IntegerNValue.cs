@@ -128,6 +128,20 @@ namespace Echo.Concrete.Values.ValueType
         public override IValue Copy() => new IntegerNValue(Bits, Mask);
 
         /// <inheritdoc />
+        public override int ToInt32Value()
+        {
+            Span<byte> bits = Bits;
+            
+            int result = 0;
+            int size = Math.Min(Size, sizeof(int));
+            
+            for (int i = 0; i < size; i++)
+                result |= bits[i] << (i * 8);
+
+            return result;
+        }
+
+        /// <inheritdoc />
         public override Trilean GetBit(int index)
         {
             var bits = new BitField(Bits);

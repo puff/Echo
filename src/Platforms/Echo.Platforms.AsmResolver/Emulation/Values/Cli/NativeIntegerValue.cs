@@ -79,6 +79,9 @@ namespace Echo.Platforms.AsmResolver.Emulation.Values.Cli
         public override IValue Copy() => new NativeIntegerValue(_value, Size == sizeof(uint));
 
         /// <inheritdoc />
+        public override int ToInt32Value() => _value.ToInt32Value();
+
+        /// <inheritdoc />
         public override Trilean GetBit(int index) => _value.GetBit(index);
 
         /// <inheritdoc />

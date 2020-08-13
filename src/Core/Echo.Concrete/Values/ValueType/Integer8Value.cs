@@ -191,6 +191,9 @@ namespace Echo.Concrete.Values.ValueType
         public override IValue Copy() => new Integer8Value(U8, Mask);
 
         /// <inheritdoc />
+        public override int ToInt32Value() => I8;
+
+        /// <inheritdoc />
         public override void Not()
         {
             U8 = unchecked((byte) ~U8);
