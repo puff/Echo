@@ -7,7 +7,7 @@ using Echo.Core.Values;
 namespace Echo.Concrete.Values.ValueType
 {
     /// <summary>
-    /// Represents a fully known concrete 32 bit floating point numerical value.
+    /// Represents a (partially) known concrete 32 bit floating point numerical value.
     /// </summary>
     public class Float32Value : FloatValue
     {
@@ -20,6 +20,11 @@ namespace Echo.Concrete.Values.ValueType
         {
             return new Float32Value(value);
         }
+        
+        /// <summary>
+        /// Represents the bitmask that is used for a fully known concrete 32 bit floating point value. 
+        /// </summary>
+        public const uint FullyKnownMask = 0xFFFFFFFF;
 
         /// <summary>
         /// Creates a new fully known concrete 32 bit floating point numerical value.
@@ -28,12 +33,35 @@ namespace Echo.Concrete.Values.ValueType
         public Float32Value(float value)
         {
             F32 = value;
+            Mask = FullyKnownMask;
+        }
+
+        /// <summary>
+        /// Creates a new partially known concrete 32 bit floating point numerical value.
+        /// </summary>
+        /// <param name="value">The raw 32 bit value.</param>
+        /// <param name="mask">The known bit mask.</param>
+        public Float32Value(float value, uint mask)
+        {
+            F32 = value;
+            Mask = mask;
         }
 
         /// <summary>
         /// Gets or sets the raw floating point value.
         /// </summary>
         public float F32
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gets a value indicating which bits in the floating point number are known.
+        /// If bit at location <c>i</c> equals 1, bit <c>i</c> in <see cref="F32"/> and <see cref="F32"/> is known,
+        /// and unknown otherwise.  
+        /// </summary>
+        public uint Mask
         {
             get;
             set;
@@ -66,11 +94,7 @@ namespace Echo.Concrete.Values.ValueType
         }
 
         /// <inheritdoc />
-        public override void GetMask(Span<byte> buffer)
-        {
-            // TODO: support unknown bits in float.
-            buffer.Fill(0xFF);
-        }
+        public override void GetMask(Span<byte> buffer) => BinaryPrimitives.WriteUInt32LittleEndian(buffer, Mask);
 
         /// <inheritdoc />
         public override unsafe void SetBits(Span<byte> bits, Span<byte> mask)
@@ -84,9 +108,6 @@ namespace Echo.Concrete.Values.ValueType
 
         /// <inheritdoc />
         public override IValue Copy() => new Float32Value(F32);
-
-        /// <inheritdoc />
-        public override string ToString() => F32.ToString(CultureInfo.InvariantCulture);
 
         /// <inheritdoc />
         public override bool Equals(object obj)

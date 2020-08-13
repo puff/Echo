@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Echo.Core;
 using Echo.Core.Values;
 
@@ -55,7 +56,6 @@ namespace Echo.Concrete.Values.ValueType
 
                     return Trilean.True;
                 }
-
 
                 Span<byte> mask = stackalloc byte[Size];
                 GetMask(mask);
@@ -210,5 +210,50 @@ namespace Echo.Concrete.Values.ValueType
 
         /// <inheritdoc />
         public abstract IValue Copy();
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            Span<byte> bits = stackalloc byte[Size];
+            Span<byte> mask = stackalloc byte[Size];
+            GetBits(bits);
+            GetMask(mask);
+
+            var bitField = new BitField(bits);
+            var maskField = new BitField(mask);
+
+            var builder = new StringBuilder();
+
+            builder.Append(Sign.Value switch
+            {
+                TrileanValue.False => "+",
+                TrileanValue.True => "-",
+                TrileanValue.Unknown => "(-1)^? * ",
+                _ => throw new ArgumentOutOfRangeException()
+            });
+
+            builder.Append(IsZero ? "0." : "1.");
+
+            for (int i = SignificantIndex + SignificandSize - 1; i >= SignificantIndex; i--)
+                WriteBit(builder, bitField[i], maskField[i]);
+            
+            builder.Append("₂ * 2^");
+            for (int i = ExponentIndex + ExponentSize - 1; i >= ExponentIndex; i--)
+                WriteBit(builder, bitField[i], maskField[i]);
+
+            static void WriteBit(StringBuilder builder, bool value, bool mask)
+            {
+                if (!mask)
+                    builder.Append('?');
+                else if (value)
+                    builder.Append('1');
+                else
+                    builder.Append('0');
+            }
+
+            builder.Append('₂');
+
+            return builder.ToString();
+        }
     }
 }

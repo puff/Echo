@@ -44,7 +44,7 @@ namespace Echo.Concrete.Tests.Values.ValueType
             const float testValue = 0.123f;
             
             var value = new Float32Value(testValue);
-
+            
             Span<byte> buffer = stackalloc byte[sizeof(float)];
             Span<byte> mask = stackalloc byte[sizeof(float)];
             value.GetBits(buffer);

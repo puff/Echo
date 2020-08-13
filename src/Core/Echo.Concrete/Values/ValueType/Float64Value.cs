@@ -22,6 +22,11 @@ namespace Echo.Concrete.Values.ValueType
         }
 
         /// <summary>
+        /// Represents the bitmask that is used for a fully known concrete 64 bit floating point value. 
+        /// </summary>
+        public const ulong FullyKnownMask = 0xFFFFFFFF_FFFFFFFF;
+
+        /// <summary>
         /// Creates a new fully known concrete 64 bit floating point numerical value.
         /// </summary>
         /// <param name="value">The raw 64 bit value.</param>
@@ -31,9 +36,31 @@ namespace Echo.Concrete.Values.ValueType
         }
 
         /// <summary>
+        /// Creates a new partially known concrete 64 bit floating point numerical value.
+        /// </summary>
+        /// <param name="value">The raw 64 bit value.</param>
+        /// <param name="mask">The known bit mask.</param>
+        public Float64Value(double value, ulong mask)
+        {
+            F64 = value;
+            Mask = mask;
+        }
+
+        /// <summary>
         /// Gets or sets the raw floating point value.
         /// </summary>
         public double F64
+        {
+            get;
+            set;
+        }
+        
+        /// <summary>
+        /// Gets a value indicating which bits in the floating point number are known.
+        /// If bit at location <c>i</c> equals 1, bit <c>i</c> in <see cref="F64"/> and <see cref="F64"/> is known,
+        /// and unknown otherwise.  
+        /// </summary>
+        public ulong Mask
         {
             get;
             set;
@@ -69,11 +96,7 @@ namespace Echo.Concrete.Values.ValueType
         }
 
         /// <inheritdoc />
-        public override void GetMask(Span<byte> buffer)
-        {
-            // TODO: support unknown bits in float.
-            buffer.Fill(0);
-        }
+        public override void GetMask(Span<byte> buffer) => BinaryPrimitives.WriteUInt64LittleEndian(buffer, Mask);
 
         /// <inheritdoc />
         public override unsafe void SetBits(Span<byte> bits, Span<byte> mask)
@@ -84,9 +107,6 @@ namespace Echo.Concrete.Values.ValueType
             ulong rawBits = BinaryPrimitives.ReadUInt64LittleEndian(bits);
             F64 = *(double*) &rawBits;
         }
-
-        /// <inheritdoc />
-        public override string ToString() => F64.ToString(CultureInfo.InvariantCulture);
 
         /// <inheritdoc />
         public override bool Equals(object obj)
