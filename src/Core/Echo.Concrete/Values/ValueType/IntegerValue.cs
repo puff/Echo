@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Text;
 using Echo.Core;
 using Echo.Core.Values;
@@ -11,6 +12,59 @@ namespace Echo.Concrete.Values.ValueType
     /// </summary>
     public abstract class IntegerValue : IValueTypeValue
     {
+        /// <summary>
+        /// Creates a new fully known zero integer value with the provided bit length.
+        /// </summary>
+        /// <param name="bitLength">The bit length.</param>
+        /// <returns>The integer value.</returns>
+        /// <remarks>
+        /// This method selects the most optimal derived class of <see cref="IntegerValue"/> to fit the provided bit length. 
+        /// </remarks>
+        public static IntegerValue Create(int bitLength) => bitLength switch
+        {
+            8 => new Integer8Value(0),
+            16 => new Integer16Value(0),
+            32 => new Integer32Value(0),
+            64 => new Integer64Value(0),
+            _ => new IntegerNValue(bitLength / 8)
+        };
+
+        /// <summary>
+        /// Creates a new fully known integer value with the provided value and bit length.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="bitLength">The bit length.</param>
+        /// <returns>The integer value.</returns>
+        /// <remarks>
+        /// This method selects the most optimal derived class of <see cref="IntegerValue"/> to fit the provided bit length. 
+        /// </remarks>
+        public static IntegerValue Create(long value, int bitLength)
+        {
+            Span<byte> bits = stackalloc byte[sizeof(long)];
+            Span<byte> mask = stackalloc byte[sizeof(long)];
+            BinaryPrimitives.WriteInt64LittleEndian(bits, value);
+            mask.Fill(0xFF);
+            
+            return Create(bits, mask, bitLength);
+        }
+
+        /// <summary>
+        /// Creates a new partially known integer value with the provided value and bit length.
+        /// </summary>
+        /// <param name="bits">The bits.</param>
+        /// <param name="mask">The known bitmask.</param>
+        /// <param name="bitLength">The bit length.</param>
+        /// <returns>The integer value.</returns>
+        /// <remarks>
+        /// This method selects the most optimal derived class of <see cref="IntegerValue"/> to fit the provided bit length. 
+        /// </remarks>
+        public static IntegerValue Create(Span<byte> bits, Span<byte> mask, int bitLength)
+        {
+            var result = Create(bitLength);
+            result.SetBits(bits, mask);
+            return result;
+        }
+
         /// <inheritdoc />
         public abstract bool IsKnown
         {
@@ -784,21 +838,8 @@ namespace Echo.Concrete.Values.ValueType
                     newMask[i] = sign.IsKnown;
                 }
             }
-
-            // Optimize to native integer types.
-            IntegerValue result = newBitLength switch
-            {
-                8 => new Integer8Value(0),
-                16 => new Integer16Value(0),
-                32 => new Integer32Value(0),
-                64 => new Integer64Value(0),
-                _ => new IntegerNValue(newBitLength / 8)
-            };
-
-            // Set contents.
-            result.SetBits(newBitsBuffer, newMaskBuffer);
             
-            return result;
+            return Create(newBitsBuffer, newMaskBuffer, newBitLength);
         }
 
         private void AssertSameBitSize(IntegerValue other)
