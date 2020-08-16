@@ -187,7 +187,7 @@ namespace Echo.Concrete.Values.ValueType
         {
             get;
         }
-        
+
         private int ExponentIndex => SignificantIndex + SignificandSize;
 
         private int SignificantIndex => 0;
@@ -225,6 +225,112 @@ namespace Echo.Concrete.Values.ValueType
         /// </summary>
         /// <returns>The significand.</returns>
         protected abstract IntegerValue GetSignificand();
+
+        protected abstract IntegerValue GetExponentBias();
+
+        private void SetBitsInSpan(Span<byte> destination, Span<byte> source, int bitIndex, int bitLength)
+        {
+            var destinationField = new BitField(destination);
+            var sourceField = new BitField(source);
+            
+            // TODO: optimise for speed.
+            for (int i = 0; i < bitLength; i++)
+                destinationField[bitIndex + i] = sourceField[i];
+        }
+
+        private void SetComponents(Trilean sign, IntegerValue exponent, IntegerValue significand)
+        {
+            Span<byte> bits = stackalloc byte[Size];
+            Span<byte> mask = stackalloc byte[Size];
+            Span<byte> buffer = stackalloc byte[Size];
+
+            // Write exponent.
+            exponent.Add(GetExponentBias());
+            exponent.GetBits(buffer);
+            SetBitsInSpan(bits, buffer, ExponentIndex, ExponentSize);
+            exponent.GetMask(buffer);
+            SetBitsInSpan(mask, buffer, ExponentIndex, ExponentSize);
+            
+            // Write significand.
+            significand.GetBits(buffer);
+            SetBitsInSpan(bits, buffer, SignificantIndex, SignificandSize);
+            significand.GetMask(buffer);
+            SetBitsInSpan(mask, buffer, SignificantIndex, SignificandSize);
+
+            // Write sign.
+            bits[Size - 1] |= sign.ToBooleanOrFalse() ? (byte) 0x80 : (byte) 0;
+            mask[Size - 1] |= sign.IsKnown ? (byte) 0x80 : (byte) 0;
+
+            // Persist.
+            SetBits(bits, mask);
+        }
+        
+        private int NormalizeSignificand(IntegerValue significand)
+        {
+            int index = significand.GetIndexOfMostSignificantNonZeroBit();
+            int delta = index - SignificandSize;
+
+            if (delta > 0)
+                significand.RightShift(delta, false);
+            else if (delta < 0)
+                significand.LeftShift(-delta);
+
+            return delta;
+        }
+
+        /// <summary>
+        /// Adds a second (partially) known floating point number to the current floating point number. 
+        /// </summary>
+        /// <param name="other">The floating point number to add.</param>
+        /// <exception cref="ArgumentException">Occurs when the sizes of the numbers do not match.</exception>
+        public virtual void Add(FloatValue other)
+        {
+            // If signs are not known, we won't know whether it is add or subtract.
+            if (Sign.IsUnknown || other.Sign.IsUnknown)
+            {
+                MarkFullyUnknown();
+                return;
+            }
+            
+            // If exponents are not fully known, we won't know how to align the significands.
+            var exponent = GetExponent();
+            if (!exponent.IsKnown)
+            {
+                MarkFullyUnknown();
+                return;
+            }
+            
+            var otherExponent = other.GetExponent();
+            if (!otherExponent.IsKnown)
+            {
+                MarkFullyUnknown();
+                return;
+            }
+            
+            // Get significands.
+            var significand = GetSignificand();
+            var otherSignificand = other.GetSignificand();
+
+            // Align significands.
+            int exponentDelta = exponent.ToInt32Value() - otherExponent.ToInt32Value();
+            if (exponentDelta > 0)
+                otherSignificand.RightShift(exponentDelta, false);
+            else if (exponentDelta < 0)
+                significand.RightShift(exponentDelta, false);
+
+            // Perform add or subtract, depending on sign.
+            if (other.Sign)
+                significand.Subtract(otherSignificand);
+            else 
+                significand.Add(otherSignificand);
+
+            // Normalize.
+            int delta = NormalizeSignificand(significand);
+            exponent.Add(IntegerValue.Create(delta, (int) Math.Ceiling(ExponentSize / 8.0) * 8));
+
+            // Persist.
+            SetComponents(Sign, exponent, significand);
+        }
 
         /// <inheritdoc />
         public override string ToString()

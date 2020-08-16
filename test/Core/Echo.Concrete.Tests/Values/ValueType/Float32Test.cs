@@ -54,5 +54,16 @@ namespace Echo.Concrete.Tests.Values.ValueType
             
             Assert.Equal(testValue, value.F32);
         }
+
+        [Theory]
+        [InlineData(1.5f, 1.25f, 2.75f)]
+        [InlineData(100.5f, 1.25f, 101.75f)]
+        public void AddFullyKnownValues(float a, float b, float expected)
+        {
+            var value1 = new Float32Value(a);
+            var value2 = new Float32Value(b);
+            value1.Add(value2);
+            Assert.Equal(expected, value1.F32);
+        }
     }
 }

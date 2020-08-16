@@ -44,8 +44,11 @@ namespace Echo.Concrete.Values.ValueType
             Span<byte> mask = stackalloc byte[sizeof(long)];
             BinaryPrimitives.WriteInt64LittleEndian(bits, value);
             mask.Fill(0xFF);
-            
-            return Create(bits, mask, bitLength);
+
+            return Create(
+                bits.Slice(0, bitLength / 8), 
+                mask.Slice(0, bitLength / 8), 
+                bitLength);
         }
 
         /// <summary>

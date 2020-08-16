@@ -26,7 +26,7 @@ namespace Echo.Concrete.Values.ValueType
         /// </summary>
         public const ulong FullyKnownMask = 0xFFFFFFFF_FFFFFFFF;
 
-        private const ulong ExponentMask = 0b0_11111111_0000000000000000000000000000000000000000000000000000;
+        private const ulong ExponentMask = 0b0_11111111111_0000000000000000000000000000000000000000000000000000;
         private const ulong SignificandMask = 0b0_00000000000_1111111111111111111111111111111111111111111111111111;
         private const ulong DefaultSignificandMask = 0b1_11111111111_0000000000000000000000000000000000000000000000000000;
         private static readonly Integer16Value ExponentBiasValue = new Integer16Value(1023);
@@ -38,6 +38,7 @@ namespace Echo.Concrete.Values.ValueType
         public Float64Value(double value)
         {
             F64 = value;
+            Mask = FullyKnownMask;
         }
 
         /// <summary>
@@ -105,7 +106,7 @@ namespace Echo.Concrete.Values.ValueType
             
             double value = F64;
             ulong rawBits = (*(ulong*) &value & ExponentMask) >> SignificandSize;
-            ulong maskBits = (Mask & ExponentMask) >> SignificandSize;
+            ulong maskBits = ((Mask & ExponentMask) >> SignificandSize) | 0b11111000_00000000;
             
             var result = new Integer16Value((ushort) rawBits, (ushort) maskBits);
             result.Subtract(ExponentBiasValue);
@@ -119,14 +120,17 @@ namespace Echo.Concrete.Values.ValueType
                 return new Integer64Value(0);
             
             double value = F64;
-            ulong rawBits = *(uint*) &value & SignificandMask;
+            ulong rawBits = *(ulong*) &value & SignificandMask;
             ulong maskBits = (Mask & SignificandMask) | DefaultSignificandMask;
 
             if (IsZero.Value != TrileanValue.True)
-                rawBits |= 1u << SignificandSize;
+                rawBits |= 1ul << SignificandSize;
 
             return new Integer64Value(rawBits, maskBits);
         }
+
+        /// <inheritdoc />
+        protected override IntegerValue GetExponentBias() => ExponentBiasValue;
 
         /// <inheritdoc />
         public override unsafe void GetBits(Span<byte> buffer)
