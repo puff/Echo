@@ -167,6 +167,15 @@ namespace Echo.Concrete.Values.ValueType
         }
 
         /// <inheritdoc />
+        public override void Add(FloatValue other)
+        {
+            if (IsKnown && other.IsKnown && other is Float32Value float32)
+                F32 += float32.F32;
+            else
+                base.Add(other);
+        }
+
+        /// <inheritdoc />
         public override int GetHashCode() => F32.GetHashCode();
     }
 }

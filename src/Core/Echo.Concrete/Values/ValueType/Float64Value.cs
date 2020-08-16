@@ -168,5 +168,15 @@ namespace Echo.Concrete.Values.ValueType
 
         /// <inheritdoc />
         public override int GetHashCode() => F64.GetHashCode();
+
+        /// <inheritdoc />
+        public override void Add(FloatValue other)
+        {
+            if (IsKnown && other.IsKnown && other is Float64Value float64)
+                F64 += float64.F64;
+            else
+                base.Add(other);
+        }
+        
     }
 }
