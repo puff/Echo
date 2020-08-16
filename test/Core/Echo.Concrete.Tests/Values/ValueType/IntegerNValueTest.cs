@@ -320,5 +320,16 @@ namespace Echo.Concrete.Tests.Values.ValueType
 
             Assert.Equal(expected, value1.IsGreaterThan(value2, signed));
         }
+        
+        [Theory]
+        [InlineData("00000000", -1)]
+        [InlineData("00000001", 0)]
+        [InlineData("00000010", 1)]
+        [InlineData("10000000", 7)]
+        public void IndexOfMostSignificantNonZeroBit(string input, int expected)
+        {
+            var value = new IntegerNValue(input);
+            Assert.Equal(expected, value.GetIndexOfMostSignificantNonZeroBit());
+        }
     }
 }

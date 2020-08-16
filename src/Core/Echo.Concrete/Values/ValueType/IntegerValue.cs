@@ -149,6 +149,21 @@ namespace Echo.Concrete.Values.ValueType
         /// <inheritdoc />
         public abstract void MarkFullyUnknown();
 
+        /// <summary>
+        /// Gets the index of the most significant non-zero bit.
+        /// </summary>
+        /// <returns>The index, or -1 if all bits are zero.</returns>
+        public virtual int GetIndexOfMostSignificantNonZeroBit()
+        {
+            for (int i = Size * 8 - 1; i >= 0; i--)
+            {
+                if (GetBit(i).Value != False)
+                    return i;
+            }
+
+            return -1;
+        }
+
         /// <inheritdoc />
         public override string ToString()
         {
