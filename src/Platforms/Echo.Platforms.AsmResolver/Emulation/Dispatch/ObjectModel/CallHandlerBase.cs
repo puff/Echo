@@ -158,10 +158,10 @@ namespace Echo.Platforms.AsmResolver.Emulation.Dispatch.ObjectModel
             var result = callee;
             
             // Instantiate any args in the declaring type.
-            if (callee.DeclaringType?.ToTypeDefOrRef() is TypeSpecification { Signature: {} typeSignature })
+            if (callee.DeclaringType is TypeSpecification { Signature: {} typeSignature })
             {
                 var newType = typeSignature.InstantiateGenericTypes(context);
-                if (newType != typeSignature)
+                if (!SignatureComparer.Default.Equals(newType, typeSignature))
                     result = newType.ToTypeDefOrRef().CreateMemberReference(callee.Name!, callee.Signature!);
             }
 

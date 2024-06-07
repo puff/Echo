@@ -318,6 +318,42 @@ namespace Echo.Platforms.AsmResolver.Tests.Emulation.Dispatch.ObjectModel
         }
 
         [Fact]
+        public void CallGenericMethodInGenericType()
+        {
+            var factory = ModuleFixture.MockModule.CorLibTypeFactory;
+            
+            var module = new ModuleDefinition("DummyModule");
+            var calleeType = new TypeDefinition(null, "SomeGenericType", TypeAttributes.Class, factory.Object.Type);
+            module.TopLevelTypes.Add(calleeType);
+            
+            // void SomeGenericType<int>::SomeMethod<int>();
+            var callee = calleeType
+                .MakeGenericInstanceType(factory.Int32)
+                .ToTypeDefOrRef()
+                .CreateMemberReference("SomeMethod", MethodSignature.CreateStatic(factory.Void, 1))
+                .MakeGenericInstanceMethod(factory.Int32);
+            
+            Context.Machine.Invoker = DefaultInvokers.StepIn;
+            
+            var callerFrame = Context.CurrentFrame;
+            callerFrame.EvaluationStack.Push(new StackSlot(1, StackSlotTypeHint.Integer));
+            var result = Dispatcher.Dispatch(Context, new CilInstruction(CilOpCodes.Call, callee));
+            
+            Assert.Equal(CilDispatchResult.Success(), result);
+            
+            // void SomeGenericType<int>::SomeMethod<int>();
+            Assert.Equal(calleeType
+                    .MakeGenericInstanceType(factory.Int32)
+                    .ToTypeDefOrRef()
+                    .CreateMemberReference(callee.Name, MethodSignature.CreateStatic(factory.Void, 1))
+                    .MakeGenericInstanceMethod(factory.Int32),
+                Context.CurrentFrame.Method,
+                SignatureComparer.Default
+            );
+        }
+
+
+        [Fact]
         public void CallStepInWithInitializer()
         {
             // Look up metadata.
